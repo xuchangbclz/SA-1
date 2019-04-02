@@ -24,6 +24,7 @@ object SARun {
 
   val NOARRAGNGECODE = "-"
   val CONNECTIONSLOTCODE = "-1"
+  val CONNECTIONSYMBOL="&"
 
   // important 1,2,3(体育),4
   val everySectionCostValue = Tuple4(
@@ -45,13 +46,57 @@ object SARun {
     val classMap = (0 to classSize-1).toList.map(i=>(classList.apply(i),i)).toMap
 
     implicit val initResourceRes = initResource.sortWith((t1, t2) => t1.classList.map(_.count).sum - t2.classList.map(_.count).sum < 0)
+
     val allResource=Tuple4(everydaySection * day, classSize, courseInfo,classMap)
     val sheetInfo = generateSheetInfo(allResource)
 
+    resolveConflict(sheetInfo)
+
   }
 
-  def resolveConflict(): Unit ={
+  def resolveConflict(sheetInfo:Array[Array[String]])(implicit resource: List[TeacherTeachingInfo]): Unit ={
 
+
+        val allDistinctTeacherIds = sheetInfo.flatMap(s=>
+          s.filter(_.contains(CONNECTIONSYMBOL)).map(_.split(CONNECTIONSYMBOL)(1)).distinct
+        ).distinct
+        val xLen=sheetInfo.length
+        val yLen=sheetInfo(0).length
+        allDistinctTeacherIds.map(id=>{
+
+
+          val singleTeacherArrangeCells=(0 to xLen-1).flatMap(i=>{
+
+             (0 to yLen-1).map(j=>{
+              val teacherAndGroup=sheetInfo(i)(j)
+              if (teacherAndGroup!=NOARRAGNGECODE){
+
+                if(teacherAndGroup.split(CONNECTIONSYMBOL)(1)==id){
+
+                   (i,j)
+                }else  (99,99)
+
+              }else  (99,99)
+
+            }).filter(_!=(99,99))
+
+
+          })
+
+          val singleTeacherConflictCells=singleTeacherArrangeCells.groupBy(_._2).mapValues(cells=>{
+
+            cells.map(_._1)
+
+
+          })
+          println()
+          singleTeacherArrangeCells
+
+
+        })
+
+
+        val FLL=List(Nil)
 
 
 
@@ -66,7 +111,7 @@ object SARun {
     val yLen = allResource._1
     val courseInfo=allResource._3
     val classMap=allResource._4
-    val sheetInfo = Array.ofDim[String](xLen, yLen).map(a=>a.map(aSub=>NOARRAGNGECODE))
+    val sheetInfo = Array.ofDim[String](xLen, yLen).map(a=>a.map(_=>NOARRAGNGECODE))
     val virtualTeacherNum=resource.size
 
     val lastSetIndx=collection.mutable.Map[Int,Int]()
@@ -79,11 +124,11 @@ object SARun {
                     val maybeInt = lastSetIndx.get(classIndx)
                     if(!maybeInt.isEmpty){
                       lastSetIndx(classIndx)=maybeInt.get+1
-                      sheetInfo.apply(classIndx)(maybeInt.get+1)=teacherIndx.get().toString
+                      sheetInfo.apply(classIndx)(maybeInt.get+1)=teacherIndx.get().toString+CONNECTIONSYMBOL+r.teacherId
 
                     }else{
                       lastSetIndx.put(classIndx,0)
-                      sheetInfo.apply(classIndx)(0)=teacherIndx.get().toString
+                      sheetInfo.apply(classIndx)(0)=teacherIndx.get().toString+CONNECTIONSYMBOL+r.teacherId
                     }
 
                   })
