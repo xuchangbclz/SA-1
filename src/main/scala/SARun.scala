@@ -26,6 +26,9 @@ object SARun {
   val CONNECTIONSLOTCODE = "-1"
   val CONNECTIONSYMBOL="&"
 
+  var sheetInfoXlen=0;
+  var sheetInfoYlen=0;
+
   // important 1,2,3(体育),4
   val everySectionCostValue = Tuple4(
     Tuple7(1, 2, 3, 4, 5, 6, 7),
@@ -62,7 +65,9 @@ object SARun {
         ).distinct
         val xLen=sheetInfo.length
         val yLen=sheetInfo(0).length
-        allDistinctTeacherIds.map(id=>{
+        this.sheetInfoXlen=xLen
+        this.sheetInfoYlen=yLen
+        val FLL=allDistinctTeacherIds.map(id=>{
 
 
           val singleTeacherArrangeCells=(0 to xLen-1).flatMap(i=>{
@@ -71,7 +76,7 @@ object SARun {
               val teacherAndGroup=sheetInfo(i)(j)
               if (teacherAndGroup!=NOARRAGNGECODE){
 
-                if(teacherAndGroup.split(CONNECTIONSYMBOL)(1)==id){
+                if(getCellTeacherId(teacherAndGroup)==id){
 
                    (i,j)
                 }else  (99,99)
@@ -81,27 +86,88 @@ object SARun {
             }).filter(_!=(99,99))
 
 
-          })
+          }).toList
 
           val singleTeacherConflictCells=singleTeacherArrangeCells.groupBy(_._2).mapValues(cells=>{
 
             cells.map(_._1)
 
+          }).filter(_._2.size>1).flatMap(f=>f._2.map(c=>(c+CONNECTIONSYMBOL+f._1,f._2)))
 
-          })
-          println()
-          singleTeacherArrangeCells
-
-
-        })
+          singleTeacherConflictCells
+        }).reduce((m1,m2)=>m1++m2)
 
 
-        val FLL=List(Nil)
+
+    (0 to yLen-1).foreach(y=>{
+
+
+      (0 to xLen-1).foreach(x=>{
+
+        val teacherGroup = sheetInfo(x)(y)
+
+        if(isContainConnectionSymbol(teacherGroup)){
+
+          val teacherId=getCellTeacherId(teacherGroup)
+
+          val conflictFLL=FLL.get(x+CONNECTIONSYMBOL+y)
+          if(!conflictFLL.isEmpty){
+            val cList = conflictFLL.get
+
+            val sampleRow1 = getSampleRow(x,y)
+
+            (0 to sheetInfoYlen-1).map( i=>{
+
+
+              if(i!=y){
+                val sampleRow2 = getSampleRow(x,i)
+
+                //获取可交换的slot
+
+              }else{
+
+                -5
+              }
+
+            })
+
+          }
+        }
+
+      })
+
+    })
+
+
 
 
 
   }
 
+  def getSampleRow(currentColumn:Int,row:Int)(implicit sheetInfo:Array[Array[String]]):Set[String]={
+
+    (0 to sheetInfoXlen-1).map(indx=>{
+
+            if(currentColumn!=indx){
+              val teachGroup = sheetInfo(indx)(row)
+              if(isContainConnectionSymbol(teachGroup)) getCellTeacherId(teachGroup)
+              else ""
+            }else ""
+
+
+    }).filter(_!="").toSet
+
+  }
+
+  def getAllFeasibleRes(): List[Int] ={
+
+
+
+  }
+
+  def getCellTeacherId(teacherGroup:String) :String= teacherGroup.split(CONNECTIONSYMBOL)(1)
+
+  def isContainConnectionSymbol(teacherGroup:String): Boolean = teacherGroup.contains(CONNECTIONSYMBOL)
 
   def generateSheetInfo(allResource:Tuple4[Int,Int,Map[String, Course],Map[String,Int]])
                        (implicit resource: List[TeacherTeachingInfo]): Array[Array[String]] = {
